@@ -22,3 +22,16 @@
 # virtual machine crash logs, see http://www.java.com/en/download/help/error_hotspot.xml
 hs_err_pid*
 replay_pid*
+/SistemaWebVentasInventario/target/
+
+# Configuracion privada de NetBeans
+**/nbproject/private/
+
+# Archivos de configuracion local
+.env
+.env.*
+!.env.example
+
+# Archivos temporales del sistema
+.DS_Store
+Thumbs.db
