@@ -1,384 +1,655 @@
+# Contrato de integración — Sistema Web de Ventas e Inventario
 
+**Versión:** 2.0  
+**Proyecto:** SistemaWebVentasInventario  
+**Backend:** Integrante 2  
+**Frontend:** Integrante 3  
+**Estado:** Backend principal implementado y probado localmente. Integración con frontend pendiente.
 
-\# Contrato de integración — Sistema Web de Ventas e Inventario
+---
 
+## 1. Información general
 
+El presente documento establece las rutas, parámetros, respuestas y reglas de integración entre el backend y el frontend del Sistema Web de Ventas e Inventario.
 
-\## 1. Información general
+### Tecnologías utilizadas
 
+- Java 17.
+- Jakarta Servlet 6.0.
+- Apache Tomcat 10.1.
+- PostgreSQL 17.
+- JDBC para conexión a la base de datos.
+- Maven para compilación y generación del archivo WAR.
+- JSP, HTML, CSS y JavaScript.
+- Codificación UTF-8.
 
-
-\- Proyecto: SistemaWebVentasInventario
-
-\- Backend: Java 17, Jakarta Servlet 6.0 y Tomcat 10.1
-
-\- Base de datos: PostgreSQL
-
-\- Comunicación: formularios HTML mediante HTTP
-
-\- Codificación: UTF-8
-
-
-
-URL local base:
-
-
+### URL base local
 
 `http://localhost:8080/SistemaWebVentasInventario`
 
+Todas las rutas documentadas son relativas al contexto de la aplicación.
 
+El frontend deberá utilizar el contexto de la aplicación para construir las direcciones, evitando depender de una URL fija.
 
-Las rutas indicadas a continuación son relativas al contexto de la aplicación.
+La comunicación entre frontend y backend se realiza mediante formularios HTML y solicitudes HTTP GET y POST. Actualmente no se utiliza una API REST con respuestas JSON.
 
+---
 
+## 2. Autenticación de usuarios
 
-\## 2. Inicio de sesión
-
-
-
-\### GET /login
-
-
+### GET /login
 
 Muestra el formulario de inicio de sesión.
 
-
-
-Campos del formulario:
-
-
+**Campos del formulario:**
 
 | Campo | Tipo | Obligatorio |
-
 |---|---|---|
-
 | usuario | text | Sí |
-
 | contrasena | password | Sí |
 
+### POST /login
 
+Recibe las credenciales del usuario y verifica su autenticidad contra PostgreSQL.
 
-\### POST /login
+**Parámetros:**
 
+- `usuario`: nombre de usuario.
+- `contrasena`: contraseña ingresada.
 
+**Funcionamiento:**
 
-Valida las credenciales contra PostgreSQL.
+1. Comprueba que los campos requeridos estén completos.
+2. Consulta el usuario en PostgreSQL mediante `UsuarioDAO`.
+3. Verifica que el usuario esté activo.
+4. Comprueba la contraseña mediante PBKDF2-SHA256.
+5. Recupera el identificador y nombre del rol.
+6. Establece la sesión HTTP correspondiente.
 
+**Resultados esperados:**
 
+- Credenciales correctas: redirección a `/dashboard`.
+- Credenciales incorrectas: mensaje de error en el formulario.
+- Campos vacíos: mensaje de validación.
+- Error de conexión: respuesta de error controlada.
 
-Parámetros:
+Las contraseñas se almacenan mediante hashes seguros, nunca en texto plano.
 
+---
 
+## 3. Cierre de sesión
 
-\- `usuario`: nombre de usuario
+### POST /logout
 
-\- `contrasena`: contraseña ingresada
+Finaliza la sesión del usuario autenticado.
 
+**Funcionamiento:**
 
+- Invalida la sesión HTTP.
+- Redirige al formulario `/login`.
+- Impide acceder a las páginas protegidas sin iniciar sesión nuevamente.
 
-Resultado esperado:
+Las páginas protegidas utilizan controles de sesión y cabeceras para evitar el almacenamiento innecesario de información sensible en caché.
 
+---
 
+## 4. Panel principal
 
-\- Credenciales correctas: crea una sesión HTTP y redirige a `/dashboard`.
+### GET /dashboard
 
-\- Credenciales incorrectas: vuelve al formulario de inicio de sesión con un mensaje de error.
+Muestra el panel principal de la aplicación.
 
-\- Campos vacíos: muestra un mensaje de validación.
+**Requisitos:**
 
+- El usuario debe tener una sesión activa.
+- La sesión debe contener un objeto `Usuario` válido.
 
+**Información disponible:**
 
-Las contraseñas no se almacenarán en texto plano.
+- Nombre de usuario autenticado.
+- Rol asignado.
+- Acceso al módulo de productos.
+- Opción para cerrar sesión.
 
+El diseño definitivo del dashboard corresponde al integrante de frontend.
 
+---
 
-\## 3. Cierre de sesión
+## 5. Gestión de productos
 
+El módulo de productos permite registrar, consultar, actualizar y desactivar productos del inventario.
 
+La información se almacena en PostgreSQL.
 
-\### POST /logout
+### 5.1. GET /productos
 
+Muestra el listado de productos activos.
 
+**Requisitos:**
 
-Invalida la sesión HTTP y redirige a `/login`.
+- Sesión autenticada.
 
-
-
-No se permitirá acceder a páginas protegidas sin una sesión válida.
-
-
-
-\## 4. Panel principal
-
-
-
-\### GET /dashboard
-
-
-
-Muestra el panel principal del sistema.
-
-
-
-Requiere una sesión válida.
-
-
-
-El panel tendrá enlaces a los módulos disponibles, inicialmente Productos y Cerrar sesión.
-
-
-
-\## 5. Gestión de productos
-
-
-
-\### GET /productos
-
-
-
-Muestra el listado de productos registrados.
-
-
-
-Requiere una sesión válida.
-
-
-
-Datos de cada producto:
-
-
+**Datos mostrados:**
 
 | Campo | Tipo | Descripción |
-
 |---|---|---|
-
-| id\_producto | integer | Identificador único |
-
+| id_producto | integer | Identificador único |
 | nombre | text | Nombre del producto |
-
-| descripcion | text | Descripción |
-
+| descripcion | text | Descripción del producto |
 | precio | decimal | Precio de venta |
+| stock | integer | Cantidad disponible |
+| estado | char | Estado del producto |
 
-| stock | integer | Existencias disponibles |
+**Funcionamiento:**
 
+- Consulta los productos mediante `ProductoDAO`.
+- Muestra únicamente productos activos (`estado = 'A'`).
+- Envía los resultados a `productos.jsp`.
+- Permite acceder a los formularios de registro y edición.
+- Muestra la opción de eliminación únicamente a los administradores.
 
+### 5.2. GET /productos/crear
 
-\### GET /productos/nuevo
+Muestra el formulario para registrar un nuevo producto.
 
+**Campos:**
 
+| Campo | Tipo | Obligatorio |
+|---|---|---|
+| nombre | text | Sí |
+| descripcion | textarea | No |
+| precio | number | Sí |
+| stock | number | Sí |
 
-Muestra el formulario para registrar un producto.
+El formulario incluye un campo oculto denominado `csrfToken`.
 
+### 5.3. POST /productos/crear
 
+Registra un producto nuevo en PostgreSQL.
 
-\### POST /productos/crear
+**Parámetros:**
 
+- `nombre`
+- `descripcion`
+- `precio`
+- `stock`
+- `csrfToken`
 
+**Validaciones:**
 
-Registra un producto en PostgreSQL.
+- Nombre obligatorio y máximo 100 caracteres.
+- Descripción de máximo 255 caracteres.
+- Precio numérico, mayor o igual a cero y con máximo dos decimales.
+- Stock entero, mayor o igual a cero.
+- Token CSRF válido.
+- Sesión autenticada.
 
+**Resultados esperados:**
 
+- Registro correcto: redirección a `/productos`.
+- Datos incorrectos: mensaje de validación.
+- Token CSRF inválido: HTTP 403.
+- Error de base de datos: respuesta controlada.
 
-Parámetros:
+### 5.4. GET /productos/actualizar?id=ID
 
+Muestra el formulario de edición del producto seleccionado.
 
+**Parámetro:**
 
-\- `nombre`
+- `id`: identificador del producto.
 
-\- `descripcion`
+**Funcionamiento:**
 
-\- `precio`
+- Comprueba que exista una sesión activa.
+- Busca el producto mediante `ProductoDAO`.
+- Recupera únicamente productos activos.
+- Carga sus datos en `editar-producto.jsp`.
+- Proporciona un token CSRF para el formulario.
 
-\- `stock`
+Si el producto no existe o está inactivo, no debe permitirse su edición.
 
+### 5.5. POST /productos/actualizar
 
+Actualiza la información de un producto existente.
 
-Resultado esperado:
+**Parámetros:**
 
+- `id`
+- `nombre`
+- `descripcion`
+- `precio`
+- `stock`
+- `csrfToken`
 
+**Validaciones:**
 
-\- Datos correctos: guarda el producto y redirige a `/productos`.
+- Identificador válido.
+- Producto existente y activo.
+- Nombre obligatorio.
+- Descripción dentro del límite permitido.
+- Precio mayor o igual a cero.
+- Stock mayor o igual a cero.
+- Token CSRF válido.
+- Sesión autenticada.
 
-\- Datos incorrectos: muestra un mensaje de validación sin registrar el producto.
+**Resultados esperados:**
 
+- Actualización correcta: redirección a `/productos`.
+- Datos incorrectos: mensaje de validación.
+- Producto inexistente: respuesta de error.
+- Token CSRF inválido: HTTP 403.
 
+### 5.6. POST /productos/eliminar
 
-\### GET /productos/editar?id=ID
+Realiza la eliminación lógica del producto seleccionado.
 
+**Parámetros:**
 
+- `id`
+- `csrfToken`
 
-Muestra el formulario de edición con los datos del producto seleccionado.
+**Funcionamiento:**
 
+1. Comprueba que exista una sesión autenticada.
+2. Verifica que el usuario tenga rol `ADMINISTRADOR`.
+3. Valida el token CSRF.
+4. Comprueba el identificador del producto.
+5. Ejecuta la eliminación lógica mediante `ProductoDAO`.
+6. Cambia el estado del producto de `A` a `I`.
+7. Redirige al listado de productos.
 
+**Resultados esperados:**
 
-Parámetro:
+- Eliminación correcta: redirección a `/productos?eliminado=1`.
+- Usuario sin permisos: HTTP 403.
+- Token CSRF inválido: HTTP 403.
+- Identificador incorrecto: HTTP 400.
+- Producto inexistente o inactivo: HTTP 404.
+- Error de base de datos: HTTP 500 con mensaje controlado.
 
+**Importante:** La eliminación no borra físicamente el registro de PostgreSQL. Únicamente cambia su estado a inactivo.
 
+No está permitida la eliminación mediante GET. Una solicitud GET a esta ruta devuelve HTTP 405.
 
-\- `id`: identificador del producto.
+---
 
+## 6. Roles y permisos
 
+El sistema utiliza dos roles principales:
 
-\### POST /productos/actualizar
+- `ADMINISTRADOR`
+- `OPERADOR`
 
+### Matriz de permisos
 
+| Funcionalidad | ADMINISTRADOR | OPERADOR |
+|---|---|---|
+| Iniciar sesión | Sí | Sí |
+| Acceder al dashboard | Sí | Sí |
+| Consultar productos | Sí | Sí |
+| Registrar productos | Sí | Sí |
+| Actualizar productos | Sí | Sí |
+| Eliminar productos | Sí | No |
+| Cerrar sesión | Sí | Sí |
 
-Actualiza un producto existente.
+Los permisos se determinan utilizando el rol recuperado desde PostgreSQL durante la autenticación.
 
+El backend valida los permisos antes de ejecutar operaciones restringidas.
 
+El frontend también debe respetar estas reglas al mostrar las opciones disponibles.
 
-Parámetros:
+Por ejemplo, el botón **Eliminar** no debe aparecer cuando el usuario tenga el rol `OPERADOR`.
 
+Ocultar botones no sustituye las validaciones de seguridad implementadas en el servidor.
 
+---
 
-\- `id\_producto`
+## 7. Seguridad del sistema
 
-\- `nombre`
+### 7.1. Contraseñas
 
-\- `descripcion`
+Las contraseñas se protegen mediante:
 
-\- `precio`
+- PBKDF2 con HMAC-SHA256.
+- 600,000 iteraciones.
+- Sal aleatoria de 16 bytes.
+- Hash de 256 bits.
 
-\- `stock`
+El sistema verifica las contraseñas utilizando la clase `SeguridadPassword`.
 
+### 7.2. Sesiones HTTP
 
+Las operaciones protegidas requieren una sesión válida.
 
-Resultado esperado:
+La información del usuario autenticado se almacena en la sesión mediante el atributo:
 
+`usuario`
 
+Este atributo contiene un objeto de la clase `Usuario`, que incluye su identificador, nombre de usuario, estado y rol.
 
-\- Actualización correcta: redirige a `/productos`.
+La sesión tiene un tiempo de expiración configurado de 30 minutos.
 
-\- Error de validación: muestra un mensaje sin modificar el registro.
+### 7.3. Protección CSRF
 
+Los formularios que modifican información utilizan un token CSRF.
 
+**Nombre obligatorio del parámetro:**
 
-\### POST /productos/eliminar
+`csrfToken`
 
+El backend genera el token y lo almacena en la sesión.
 
+El frontend debe incluirlo en los formularios POST de:
 
-Elimina el producto seleccionado, siempre que las reglas de integridad de la base de datos lo permitan.
+- Registro de productos.
+- Actualización de productos.
+- Eliminación de productos.
 
+Ejemplo de campo oculto en JSP:
 
+```jsp
+<input type="hidden"
+       name="csrfToken"
+       value="<%= csrfToken %>">
+```
 
-Parámetro:
+El valor debe obtenerse del backend y escaparse correctamente al insertarlo en HTML.
 
+No debe utilizarse un token fijo ni generarse uno independiente en el frontend.
 
+### 7.4. Protección contra SQL Injection
 
-\- `id\_producto`
+Las operaciones SQL utilizan `PreparedStatement` y parámetros preparados.
 
+No deben construirse consultas SQL concatenando directamente los datos recibidos del usuario.
 
+### 7.5. Protección contra XSS
 
-Resultado esperado:
+Los datos dinámicos deben escaparse antes de mostrarse en HTML.
 
+Esto incluye:
 
+- Nombres de productos.
+- Descripciones.
+- Valores recuperados de formularios.
+- Mensajes de error.
+- Valores dinámicos insertados en atributos HTML.
 
-\- Eliminación correcta: redirige a `/productos`.
+Los formularios provisionales del backend ya incorporan medidas de escape HTML.
 
-\- Producto inexistente o eliminación no permitida: muestra un mensaje de error.
+El frontend definitivo debe conservar estas protecciones.
 
+---
 
+## 8. Validaciones de datos
 
-\## 6. Validaciones
+El backend es responsable de validar todos los datos recibidos, independientemente de las validaciones HTML o JavaScript.
 
+### Productos
 
+| Campo | Regla |
+|---|---|
+| id | Entero positivo |
+| nombre | Obligatorio, máximo 100 caracteres |
+| descripcion | Máximo 255 caracteres |
+| precio | Decimal mayor o igual a cero, máximo dos decimales |
+| stock | Entero mayor o igual a cero |
+| estado | A (activo) o I (inactivo) |
 
-El backend verificará:
+Las validaciones del frontend sirven para mejorar la experiencia de usuario, pero no reemplazan las del servidor.
 
+---
 
+## 9. Respuestas HTTP y navegación
 
-\- Que los campos obligatorios no estén vacíos.
+El sistema utiliza las siguientes respuestas:
 
-\- Que el nombre del producto no esté vacío.
+| Código | Significado |
+|---|---|
+| 200 | Solicitud procesada correctamente |
+| 302 | Redirección después de una operación |
+| 400 | Parámetros incorrectos |
+| 403 | Acceso denegado o token CSRF inválido |
+| 404 | Recurso no encontrado |
+| 405 | Método HTTP no permitido |
+| 500 | Error interno del servidor |
 
-\- Que el precio sea un número mayor o igual a cero.
+### Reglas de navegación
 
-\- Que el stock sea un entero mayor o igual a cero.
+- GET: consultar información o mostrar formularios.
+- POST: procesar operaciones que modifican información.
+- Operación exitosa: redirigir a la página correspondiente.
+- Validación incorrecta: mostrar un mensaje de error.
+- Sesión inexistente: redirigir a `/login`.
+- Acceso sin permisos: responder HTTP 403.
 
-\- Que los identificadores sean válidos.
+Las rutas deben construirse utilizando el contexto de la aplicación.
 
-\- Que el usuario tenga una sesión activa.
+---
 
+## 10. Conexión con PostgreSQL
 
+La conexión se implementa mediante la clase:
 
-Las consultas SQL utilizarán `PreparedStatement` para evitar inyección SQL.
+`com.sistemaventas.config.ConexionBD`
 
+### Configuración local
 
+- Motor: PostgreSQL 17.
+- Puerto: 5432.
+- Base de datos: `sistema_inventario_web`.
+- Usuario de aplicación: `app_inventario`.
 
-\## 7. Respuestas y navegación
+### Variables de entorno
 
+**DB_PASSWORD**
 
+Contiene la contraseña del usuario de PostgreSQL utilizado por la aplicación.
 
-La primera versión utilizará páginas HTML y formularios tradicionales, no una API JSON.
+Es obligatoria.
 
+**DB_URL**
 
+Permite configurar la URL JDBC de conexión.
 
-\- GET: muestra páginas o formularios.
+Si no está definida, se utiliza la siguiente dirección local:
 
-\- POST: procesa operaciones.
+`jdbc:postgresql://localhost:5432/sistema_inventario_web`
 
-\- Operación exitosa: redirección HTTP.
+En el VPS podrá configurarse la dirección correspondiente sin modificar el código Java.
 
-\- Validación incorrecta: muestra el formulario con un mensaje.
+Las contraseñas no deben incluirse en el repositorio GitHub ni escribirse directamente en el código fuente.
 
-\- Sesión inexistente: redirección a `/login`.
+---
 
-\- Recurso inexistente: respuesta HTTP 404.
+## 11. Estructura del backend
 
+### Paquete de configuración
 
+`com.sistemaventas.config`
 
-Las rutas deben construirse utilizando el contexto de la aplicación para permitir su despliegue local y en el VPS.
+- `ConexionBD.java`: conexión JDBC con PostgreSQL.
 
+### Paquete de modelos
 
+`com.sistemaventas.modelo`
 
-\## 8. Responsabilidades de integración
+- `Usuario.java`: representación de usuarios y roles.
+- `Producto.java`: representación de productos.
 
+### Paquete DAO
 
+`com.sistemaventas.dao`
 
-\### Backend — Integrante 2
+- `UsuarioDAO.java`: autenticación y consulta de usuarios.
+- `ProductoDAO.java`: operaciones de productos en PostgreSQL.
 
+### Paquete de seguridad
 
+`com.sistemaventas.seguridad`
 
-\- Implementar los Servlets y las rutas acordadas.
+- `SeguridadPassword.java`: verificación segura de contraseñas.
+- `GeneradorPassword.java`: generación de hashes.
+- `PruebaGeneradorPassword.java`: herramienta de prueba para generar hashes desde una terminal.
 
-\- Conectar PostgreSQL mediante JDBC.
+### Paquete de Servlets
 
-\- Gestionar autenticación, sesiones y cierre de sesión.
+`com.sistemaventas.servlet`
 
-\- Implementar operaciones CRUD de productos.
+- `LoginServlet.java`
+- `DashboardServlet.java`
+- `LogoutServlet.java`
+- `ProductoServlet.java`
+- `CrearProductoServlet.java`
+- `ActualizarProductoServlet.java`
+- `EliminarProductoServlet.java`
 
-\- Validar los datos recibidos.
+### Páginas JSP
 
-\- Preparar el archivo WAR.
+- `login.jsp`
+- `WEB-INF/dashboard.jsp`
+- `WEB-INF/productos.jsp`
+- `WEB-INF/crear-producto.jsp`
+- `WEB-INF/editar-producto.jsp`
 
+Estas páginas constituyen la interfaz provisional utilizada para probar las funcionalidades del backend.
 
+El integrante de frontend podrá mejorar su diseño respetando las rutas, parámetros y validaciones establecidos en este documento.
 
-\### Frontend — Integrante 3
+---
 
+## 12. Responsabilidades de integración
 
+### 12.1. Backend — Integrante 2
 
-\- Diseñar las páginas y formularios.
+Responsabilidades:
 
-\- Utilizar exactamente las rutas y los nombres de campos definidos.
+- Implementar las rutas HTTP.
+- Desarrollar los Servlets.
+- Conectar PostgreSQL mediante JDBC.
+- Implementar autenticación.
+- Administrar sesiones.
+- Implementar el CRUD de productos.
+- Validar los datos recibidos.
+- Implementar permisos por rol.
+- Proteger las operaciones mediante CSRF.
+- Manejar errores del servidor.
+- Preparar el archivo WAR.
+- Coordinar la integración con frontend y despliegue.
 
-\- Mostrar los mensajes de validación.
+### 12.2. Frontend — Integrante 3
 
-\- Crear una interfaz adaptable a diferentes tamaños de pantalla.
+Responsabilidades:
 
-\- Coordinar cualquier modificación del contrato antes de implementarla.
+- Diseñar las páginas del sistema.
+- Mejorar la apariencia visual.
+- Crear una interfaz adaptable a diferentes pantallas.
+- Implementar formularios utilizando las rutas acordadas.
+- Respetar exactamente los nombres de los parámetros.
+- Incorporar los tokens CSRF proporcionados por el backend.
+- Mostrar mensajes de validación.
+- Respetar la visibilidad de opciones según el rol.
+- Implementar confirmaciones visuales para operaciones como eliminar productos.
+- Coordinar cualquier cambio de rutas o parámetros con el integrante de backend.
 
+### 12.3. Integración
 
+Antes de reemplazar las páginas provisionales:
 
-\## 9. Estado del documento
+1. Verificar que el frontend utilice las rutas documentadas.
+2. Confirmar que los formularios envíen los parámetros correctos.
+3. Conservar los tokens CSRF.
+4. Mantener la autenticación mediante sesiones.
+5. Respetar los permisos de cada rol.
+6. Probar nuevamente las operaciones CRUD.
+7. Confirmar que los errores se muestren correctamente.
+8. Comprobar el funcionamiento después de generar el WAR.
 
+---
 
+## 13. Pruebas realizadas
 
-Versión: 1.0 — Contrato inicial propuesto.
+Durante el desarrollo local se han realizado las siguientes pruebas:
 
+| Prueba | Resultado |
+|---|---|
+| Conexión JDBC con PostgreSQL | Correcto |
+| Autenticación de administrador | Correcto |
+| Autenticación de operador | Correcto |
+| Protección de páginas sin sesión | Correcto |
+| Cierre de sesión | Correcto |
+| Listado de productos activos | Correcto |
+| Registro de productos | Correcto |
+| Actualización de productos | Correcto |
+| Eliminación lógica | Correcto |
+| Verificación del estado inactivo en PostgreSQL | Correcto |
+| Restricción de eliminación para operador | Correcto |
+| Visibilidad del botón según rol | Correcto |
+| Compilación del proyecto Maven | Correcto |
+| Conexión local después de configurar DB_URL | Correcto |
 
+### Pruebas pendientes
 
-Las rutas y los campos de este documento todavía deben implementarse y probarse. Cualquier cambio deberá comunicarse al integrante responsable del frontend antes de integrar los formularios.
+- Integración con el diseño definitivo del frontend.
+- Pruebas conjuntas de todos los formularios.
+- Revisión de funcionalidades adicionales que requiera el proyecto.
+- Generación y verificación final del archivo WAR.
+- Despliegue en el VPS Linux.
+- Pruebas de funcionamiento desde el servidor.
+- Verificación final de seguridad y permisos después de la integración.
 
+---
 
+## 14. Consideraciones para el despliegue
 
+El backend utiliza Java 17 y Jakarta Servlet 6.0, por lo que el servidor de aplicaciones debe ser compatible con estas tecnologías.
+
+Para el despliegue se utilizará Apache Tomcat 10.1.
+
+El proyecto se empaquetará como archivo WAR mediante Maven.
+
+Antes del despliegue será necesario:
+
+- Configurar Java y Tomcat en el VPS.
+- Preparar PostgreSQL y sus usuarios.
+- Establecer `DB_PASSWORD`.
+- Configurar `DB_URL` cuando corresponda.
+- Confirmar que el controlador JDBC esté incluido en el WAR.
+- Configurar las conexiones y permisos de base de datos.
+- Verificar las rutas de acceso.
+- Probar el inicio y cierre de sesión.
+- Probar el CRUD de productos.
+- Verificar los permisos de administrador y operador.
+
+El despliegue final será coordinado con el integrante responsable de Linux y DevOps.
+
+---
+
+## 15. Estado actual del proyecto
+
+**Versión del contrato:** 2.0
+
+**Backend:** Funcional y probado localmente en sus módulos principales.
+
+**Frontend definitivo:** Pendiente de integración.
+
+**Base de datos PostgreSQL:** Implementada y utilizada por el backend.
+
+**Autenticación:** Implementada.
+
+**CRUD de productos:** Implementado.
+
+**Seguridad por roles:** Implementada para las operaciones de productos definidas.
+
+**Protección CSRF:** Implementada en las operaciones de creación, actualización y eliminación de productos.
+
+**Despliegue en VPS:** Pendiente.
+
+Este documento reemplaza la versión inicial del contrato de integración y establece las rutas y parámetros que deberá utilizar el frontend.
+
+Cualquier modificación posterior deberá coordinarse entre los integrantes responsables para evitar incompatibilidades.
+
+---
+
+**Fin del contrato de integración — Versión 2.0**
