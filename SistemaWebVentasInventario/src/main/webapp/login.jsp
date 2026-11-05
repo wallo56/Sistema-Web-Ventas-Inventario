@@ -1,3 +1,4 @@
+
 <%@page contentType="text/html" pageEncoding="UTF-8"%>
 <!DOCTYPE html>
 <html lang="es">
@@ -13,29 +14,55 @@
     <main class="login-shell">
         <section class="login-card" aria-labelledby="login-heading">
             <div class="brand-mark brand-mark-lg" aria-hidden="true">SV</div>
+
             <p class="eyebrow login-eyebrow">ACCESO AL SISTEMA</p>
             <h1 id="login-heading">Sistema de Ventas</h1>
-            <p class="muted login-intro">Ingresa tus credenciales para gestionar el inventario.</p>
+            <p class="muted login-intro">
+                Ingresa tus credenciales para gestionar el inventario.
+            </p>
 
             <% if (request.getAttribute("error") != null) { %>
-            <div class="alert alert-danger" role="alert">Usuario o contraseña incorrectos, o faltan datos.</div>
+                <div class="alert alert-danger" role="alert">
+                    Usuario o contraseña incorrectos, o faltan datos.
+                </div>
             <% } %>
 
-            <form action="<%= request.getContextPath() %>/login" method="POST" class="app-form">
+            <form action="<%= request.getContextPath() %>/login"
+                  method="POST"
+                  class="app-form">
+
                 <div class="field">
                     <label for="usuario">Usuario</label>
-                    <input id="usuario" name="usuario" type="text" placeholder="Tu usuario"
-                           autocomplete="username" maxlength="50" required autofocus>
+                    <input id="usuario"
+                           name="usuario"
+                           type="text"
+                           placeholder="Tu usuario"
+                           autocomplete="username"
+                           maxlength="50"
+                           required
+                           autofocus>
                 </div>
+
                 <div class="field">
                     <label for="password">Contraseña</label>
-                    <input id="password" name="password" type="password" placeholder="Tu contraseña"
-                           autocomplete="current-password" required>
+                    <input id="password"
+                           name="password"
+                           type="password"
+                           placeholder="Tu contraseña"
+                           autocomplete="current-password"
+                           required>
                 </div>
-                <button class="btn btn-primary btn-block" type="submit">Iniciar sesión</button>
+
+                <button class="btn btn-primary btn-block" type="submit">
+                    Iniciar sesión
+                </button>
             </form>
-            <p class="login-footer">Gestión de inventario · Acceso autorizado</p>
+
+            <p class="login-footer">
+                Gestión de inventario · Acceso autorizado
+            </p>
         </section>
     </main>
 </body>
 </html>
+
