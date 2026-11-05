@@ -1,255 +1,280 @@
+
 <%@page contentType="text/html" pageEncoding="UTF-8"%>
 <%@page import="java.util.List"%>
+<%@page import="java.util.Locale"%>
 <%@page import="com.sistemaventas.modelo.Producto"%>
-
 <%@page import="com.sistemaventas.modelo.Usuario"%>
-
-
 <%!
-    private String escaparHTML(String texto) {
-        if (texto == null) {
-            return "";
-        }
-
-        return texto
-                .replace("&", "&amp;")
-                .replace("<", "&lt;")
-                .replace(">", "&gt;")
-                .replace("\"", "&quot;")
-                .replace("'", "&#39;");
+    private String escapeProductos(String value) {
+        if (value == null) return "";
+        return value.replace("&", "&amp;")
+                    .replace("<", "&lt;")
+                    .replace(">", "&gt;")
+                    .replace("\"", "&quot;")
+                    .replace("'", "&#39;");
     }
 %>
-
-
 <%
     List<Producto> productos =
             (List<Producto>) request.getAttribute("productos");
 
     if (productos == null) {
-        response.sendRedirect(
-                request.getContextPath() + "/dashboard"
-        );
+        response.sendRedirect(request.getContextPath() + "/dashboard");
         return;
     }
 
+    Usuario usuarioActual =
+            (Usuario) session.getAttribute("usuario");
 
-String csrfToken = (String) session.getAttribute("csrfToken");
+    boolean esAdministrador = usuarioActual != null
+            && "ADMINISTRADOR".equalsIgnoreCase(
+                    usuarioActual.getNombreRol());
 
-if (csrfToken == null) {
-    csrfToken = "";
-}
+    String usuarioSeguro = usuarioActual == null ? ""
+            : escapeProductos(usuarioActual.getUsuario());
 
+    String rolSeguro = usuarioActual == null ? ""
+            : escapeProductos(usuarioActual.getNombreRol());
 
-Usuario usuarioActual =
-        (Usuario) session.getAttribute("usuario");
-
-boolean esAdministrador =
-        usuarioActual != null
-        && "ADMINISTRADOR".equalsIgnoreCase(
-                usuarioActual.getNombreRol()
-        );
-
+    String csrfToken = (String) session.getAttribute("csrfToken");
+    csrfToken = escapeProductos(csrfToken);
 %>
-
 <!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport"
-          content="width=device-width, initial-scale=1.0">
-
-    <title>Productos - Sistema de Inventario</title>
-
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 30px;
-            background-color: #f4f6f9;
-            color: #222;
-        }
-
-        h1 {
-            margin-bottom: 10px;
-        }
-
-        .contenedor {
-            max-width: 1100px;
-            margin: auto;
-            background: white;
-            padding: 25px;
-            border-radius: 8px;
-        }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 20px;
-        }
-
-        th, td {
-            padding: 12px;
-            border: 1px solid #ddd;
-            text-align: left;
-        }
-
-        th {
-            background-color: #263b59;
-            color: white;
-        }
-
-        tr:nth-child(even) {
-            background-color: #f5f5f5;
-        }
-
-        .volver {
-            display: inline-block;
-            margin-top: 20px;
-            color: #263b59;
-        }
-
-
-.nuevo-producto {
-    display: inline-block;
-    margin-top: 15px;
-    padding: 11px 18px;
-    background-color: #2563eb;
-    color: white;
-    text-decoration: none;
-    border-radius: 6px;
-    font-size: 14px;
-    font-weight: bold;
-}
-
-.nuevo-producto:hover {
-    background-color: #1d4ed8;
-}
-
-
-.editar-producto {
-    display: inline-block;
-    padding: 8px 12px;
-    background-color: #f59e0b;
-    color: #1e293b;
-    text-decoration: none;
-    border-radius: 5px;
-    font-size: 13px;
-    font-weight: bold;
-}
-
-.editar-producto:hover {
-    background-color: #d97706;
-    color: white;
-}
-
-
-.desactivar-form {
-    display: inline-block;
-    margin-left: 8px;
-}
-
-.desactivar-producto {
-    padding: 8px 12px;
-    background-color: #dc2626;
-    color: white;
-    border: none;
-    border-radius: 5px;
-    font-size: 13px;
-    font-weight: bold;
-    cursor: pointer;
-}
-
-.desactivar-producto:hover {
-    background-color: #b91c1c;
-}
-
-    </style>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#4f46e5">
+    <title>Productos | Sistema de Ventas e Inventario</title>
+    <link rel="stylesheet"
+          href="<%= request.getContextPath() %>/assets/css/frontend.css?v=2">
+    <script defer
+            src="<%= request.getContextPath() %>/assets/js/frontend.js?v=2"></script>
 </head>
+<body class="app-page">
 
-<body>
+<header class="site-header">
+    <nav class="nav-container" aria-label="Navegación principal">
+        <a class="brand"
+           href="<%= request.getContextPath() %>/dashboard">
+            <span class="brand-mark brand-mark-sm" aria-hidden="true">SV</span>
+            <span>Sistema de Ventas</span>
+        </a>
 
-<div class="contenedor">
+        <button class="nav-toggle" type="button"
+                aria-label="Abrir menú"
+                aria-controls="main-nav"
+                aria-expanded="false"
+                data-nav-toggle>
+            <span aria-hidden="true">☰</span>
+        </button>
 
-    <h1>Gestión de productos</h1>
-    <p>Listado de productos activos del inventario.</p>
+        <div class="nav-links" id="main-nav" data-nav-links>
+            <a class="nav-link"
+               href="<%= request.getContextPath() %>/dashboard">
+                Dashboard
+            </a>
 
-<a class="nuevo-producto"
-   href="<%= request.getContextPath() %>/productos/crear">
-    + Nuevo producto
-</a>
+            <a class="nav-link active" aria-current="page"
+               href="<%= request.getContextPath() %>/productos">
+                Productos
+            </a>
 
+            <span class="nav-user">
+                <%= usuarioSeguro %>
+                <span class="role-chip"><%= rolSeguro %></span>
+            </span>
 
-    <table>
-        <thead>
-            <tr>
-                <th>ID</th>
-                <th>Nombre</th>
-                <th>Descripción</th>
-                <th>Precio</th>
-                <th>Stock</th>
-                <th>Estado</th>
-                <th>Acciones</th>
-            </tr>
-        </thead>
+            <form class="nav-logout"
+                  action="<%= request.getContextPath() %>/logout"
+                  method="POST">
+                <button class="nav-logout-btn" type="submit">
+                    Cerrar sesión
+                </button>
+            </form>
+        </div>
+    </nav>
+</header>
 
-        <tbody>
-            <% if (productos.isEmpty()) { %>
-                <tr>
-                    <td colspan="7">
-                        No hay productos registrados.
-                    </td>
-                </tr>
-            <% } else { %>
-                <% for (Producto producto : productos) { %>
+<main class="page-container">
+    <div class="page-heading">
+        <div>
+            <p class="eyebrow">INVENTARIO</p>
+            <h1>Productos</h1>
+            <p class="muted">
+                Consulta, busca y administra los productos registrados.
+            </p>
+        </div>
+
+        <a class="btn btn-primary"
+           href="<%= request.getContextPath() %>/productos/crear">
+            <span aria-hidden="true">＋ </span>Nuevo producto
+        </a>
+    </div>
+
+    <section class="panel inventory-panel"
+             aria-labelledby="inventory-title">
+
+        <div class="panel-heading">
+            <div>
+                <h2 id="inventory-title">Listado de productos</h2>
+                <p class="muted small">
+                    Búsqueda y filtros sobre los productos
+                    cargados desde PostgreSQL.
+                </p>
+            </div>
+
+            <span class="panel-counter" id="contador"
+                  role="status" aria-live="polite">
+                <%= productos.size() %>
+                <%= productos.size() == 1 ? "producto" : "productos" %>
+            </span>
+        </div>
+
+        <div class="filters-row" data-product-filters>
+            <div class="field filter-search">
+                <label for="buscar">Buscar por nombre o código</label>
+                <input type="search" id="buscar"
+                       placeholder="Ej. teclado, 2 o P-002"
+                       autocomplete="off"
+                       aria-controls="productos-body">
+            </div>
+
+            <div class="field filter-select">
+                <label for="filtro-stock">Existencias</label>
+                <select id="filtro-stock"
+                        aria-controls="productos-body">
+                    <option value="todos">Todos los productos</option>
+                    <option value="disponible">Con existencia</option>
+                    <option value="bajo">Stock bajo (1 a 9)</option>
+                    <option value="agotado">Agotados (0)</option>
+                </select>
+            </div>
+
+            <button id="limpiar-filtros" type="button"
+                    class="btn btn-light filter-reset">
+                Limpiar
+            </button>
+        </div>
+
+        <div class="table-wrap" role="region"
+             aria-label="Tabla de productos" tabindex="0">
+
+            <table class="inventory-table">
+                <thead>
                     <tr>
-                        <td><%= producto.getIdProducto() %></td>
+                        <th scope="col">Código</th>
+                        <th scope="col">Producto</th>
+                        <th scope="col">Descripción</th>
+                        <th scope="col">Precio</th>
+                        <th scope="col">Stock</th>
+                        <th scope="col">Disponibilidad</th>
+                        <th scope="col">Estado</th>
+                        <th scope="col">Acciones</th>
+                    </tr>
+                </thead>
 
-                        <td><%= escaparHTML(producto.getNombre()) %></td>
-                        <td><%= escaparHTML(producto.getDescripcion()) %></td>
+                <tbody id="productos-body">
+                <%
+                    for (Producto producto : productos) {
+                        int stock = producto.getStock();
 
-                        <td><%= producto.getPrecio() %></td>
-                        <td><%= producto.getStock() %></td>
-                        <td><%= producto.getEstado() %></td>
+                        String codigo = String.format(
+                                Locale.ROOT, "P-%03d",
+                                producto.getIdProducto());
 
+                        String disponibilidad = stock <= 0
+                                ? "Agotado"
+                                : stock < 10 ? "Stock bajo" : "Disponible";
+
+                        String claseDisponibilidad = stock <= 0
+                                ? "badge-danger"
+                                : stock < 10
+                                    ? "badge-warning"
+                                    : "badge-success";
+                %>
+                    <tr data-product-row
+                        data-code="<%= codigo %>"
+                        data-id="<%= producto.getIdProducto() %>"
+                        data-name="<%= escapeProductos(producto.getNombre()) %>"
+                        data-stock="<%= stock %>">
+
+                        <td class="code-cell"><%= codigo %></td>
+
+                        <td class="product-name">
+                            <%= escapeProductos(producto.getNombre()) %>
+                        </td>
+
+                        <td class="description-cell">
+                            <%= escapeProductos(producto.getDescripcion()) %>
+                        </td>
+
+                        <td class="money-cell">
+                            Q <%= producto.getPrecio() %>
+                        </td>
+
+                        <td><strong><%= stock %></strong></td>
 
                         <td>
-                            <a class="editar-producto"
+                            <span class="badge <%= claseDisponibilidad %>">
+                                <%= disponibilidad %>
+                            </span>
+                        </td>
+
+                        <td>
+                            <span class="badge badge-neutral">
+                                <%= escapeProductos(producto.getEstado()) %>
+                            </span>
+                        </td>
+
+                        <td class="action-cell">
+                            <a class="btn btn-outline btn-sm"
                                href="<%= request.getContextPath() %>/productos/actualizar?id=<%= producto.getIdProducto() %>">
                                 Editar
                             </a>
+
                             <% if (esAdministrador) { %>
-                            <form class="desactivar-form"
+                            <form class="inline-form"
                                   action="<%= request.getContextPath() %>/productos/eliminar"
                                   method="POST"
                                   onsubmit="return confirm('¿Estás seguro de que deseas eliminar este producto?');">
 
-                                <input type="hidden"
-                                       name="id"
+                                <input type="hidden" name="id"
                                        value="<%= producto.getIdProducto() %>">
 
-                                <input type="hidden"
-                                       name="csrfToken"
+                                <input type="hidden" name="csrfToken"
                                        value="<%= csrfToken %>">
 
-                                <button type="submit" class="desactivar-producto">
+                                <button class="btn btn-danger-outline btn-sm"
+                                        type="submit">
                                     Eliminar
                                 </button>
                             </form>
                             <% } %>
                         </td>
-
-
                     </tr>
                 <% } %>
-            <% } %>
-        </tbody>
-    </table>
+                </tbody>
+            </table>
+        </div>
 
-    <a class="volver"
-       href="<%= request.getContextPath() %>/dashboard">
-        Volver al dashboard
-    </a>
+        <p class="empty-state" id="sin-resultados"
+           role="status"
+           <%= productos.isEmpty() ? "" : "hidden" %>>
+            <%= productos.isEmpty()
+                    ? "Todavía no hay productos registrados."
+                    : "No se encontraron productos con esos filtros." %>
+        </p>
 
-</div>
+        <div class="table-footer">
+            <span>
+                Productos activos cargados:
+                <strong><%= productos.size() %></strong>
+            </span>
+            <span>Stock bajo: 1 a 9 unidades</span>
+        </div>
+    </section>
+</main>
 
 </body>
 </html>

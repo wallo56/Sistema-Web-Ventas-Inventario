@@ -1,6 +1,16 @@
 
 <%@page contentType="text/html" pageEncoding="UTF-8"%>
 <%@page import="com.sistemaventas.modelo.Usuario"%>
+<%!
+    private String escapeDashboard(String value) {
+        if (value == null) return "";
+        return value.replace("&", "&amp;")
+                    .replace("<", "&lt;")
+                    .replace(">", "&gt;")
+                    .replace("\"", "&quot;")
+                    .replace("'", "&#39;");
+    }
+%>
 <%
     Usuario usuario = (Usuario) request.getAttribute("usuarioActual");
 
@@ -9,234 +19,131 @@
         return;
     }
 
-    String nombreUsuario = usuario.getUsuario();
-    String nombreRol = usuario.getNombreRol();
-
-    // Evitar que los datos del usuario se interpreten como HTML.
-    String usuarioSeguro = nombreUsuario == null ? "" :
-            nombreUsuario.replace("&", "&amp;")
-                         .replace("<", "&lt;")
-                         .replace(">", "&gt;")
-                         .replace("\"", "&quot;")
-                         .replace("'", "&#39;");
-
-    String rolSeguro = nombreRol == null ? "" :
-            nombreRol.replace("&", "&amp;")
-                     .replace("<", "&lt;")
-                     .replace(">", "&gt;")
-                     .replace("\"", "&quot;")
-                     .replace("'", "&#39;");
+    String usuarioSeguro = escapeDashboard(usuario.getUsuario());
+    String rolSeguro = escapeDashboard(usuario.getNombreRol());
 %>
 <!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Panel principal | Sistema de Inventario</title>
-
-    <style>
-        * {
-            box-sizing: border-box;
-        }
-
-        body {
-            margin: 0;
-            background: #f1f5f9;
-            font-family: Arial, sans-serif;
-            color: #1e293b;
-        }
-
-        header {
-            background: #1e293b;
-            color: white;
-            padding: 20px 30px;
-        }
-
-        .header-content {
-            max-width: 1100px;
-            margin: auto;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            gap: 15px;
-            flex-wrap: wrap;
-        }
-
-        header h1 {
-            margin: 0;
-            font-size: 22px;
-        }
-
-        .user-info {
-            font-size: 14px;
-        }
-
-        main {
-            max-width: 1100px;
-            margin: 35px auto;
-            padding: 0 20px;
-        }
-
-        .welcome {
-            background: white;
-            padding: 28px;
-            border-radius: 10px;
-            margin-bottom: 25px;
-        }
-
-        .welcome h2 {
-            margin-top: 0;
-        }
-
-        .welcome p {
-            color: #64748b;
-        }
-
-        .cards {
-            display: grid;
-            grid-template-columns: repeat(
-                auto-fit, minmax(230px, 1fr)
-            );
-            gap: 20px;
-        }
-
-        .card {
-            background: white;
-            border-radius: 10px;
-            padding: 25px;
-            border: 1px solid #e2e8f0;
-        }
-
-        .card h3 {
-            margin-top: 0;
-        }
-
-        .card p {
-            color: #64748b;
-            font-size: 14px;
-            line-height: 1.6;
-        }
-
-        .status {
-            display: inline-block;
-            margin-top: 12px;
-            padding: 8px 12px;
-            border-radius: 5px;
-            background: #e2e8f0;
-            color: #475569;
-            font-size: 13px;
-        }
-
-        .module-button {
-            display: inline-block;
-            margin-top: 12px;
-            padding: 10px 16px;
-            border-radius: 6px;
-            background: #2563eb;
-            color: white;
-            text-decoration: none;
-            font-size: 14px;
-            font-weight: bold;
-        }
-
-        .module-button:hover {
-            background: #1d4ed8;
-        }
-
-        .logout-form {
-            margin: 0;
-        }
-
-        .logout-button {
-            padding: 10px 16px;
-            border: 1px solid #f87171;
-            border-radius: 6px;
-            background: #dc2626;
-            color: white;
-            font-size: 14px;
-            font-weight: bold;
-            cursor: pointer;
-        }
-
-        .logout-button:hover {
-            background: #b91c1c;
-        }
-
-        @media (max-width: 600px) {
-            header {
-                padding: 18px;
-            }
-
-            main {
-                margin-top: 20px;
-            }
-        }
-    </style>
+    <meta name="theme-color" content="#4f46e5">
+    <title>Dashboard | Sistema de Ventas e Inventario</title>
+    <link rel="stylesheet" href="<%= request.getContextPath() %>/assets/css/frontend.css?v=2">
+    <script defer src="<%= request.getContextPath() %>/assets/js/frontend.js?v=2"></script>
 </head>
+<body class="app-page">
+    <header class="site-header">
+        <nav class="nav-container" aria-label="Navegación principal">
+            <a class="brand" href="<%= request.getContextPath() %>/dashboard">
+                <span class="brand-mark brand-mark-sm" aria-hidden="true">SV</span>
+                <span>Sistema de Ventas</span>
+            </a>
 
-<body>
-
-<header>
-    <div class="header-content">
-        <h1>Sistema de Inventario</h1>
-
-        <div class="user-info">
-            Usuario:
-            <strong><%= usuarioSeguro %></strong>
-            | Rol:
-            <strong><%= rolSeguro %></strong>
-        </div>
-
-        <form class="logout-form"
-              action="<%= request.getContextPath() %>/logout"
-              method="POST">
-
-            <button type="submit" class="logout-button">
-                Cerrar sesión
+            <button class="nav-toggle" type="button"
+                    aria-label="Abrir menú"
+                    aria-controls="main-nav"
+                    aria-expanded="false"
+                    data-nav-toggle>
+                <span aria-hidden="true">☰</span>
             </button>
-        </form>
-    </div>
-</header>
 
-<main>
-    <section class="welcome">
-        <h2>Panel principal</h2>
-        <p>
-            Bienvenido al sistema de gestión de inventario.
-            Has iniciado sesión correctamente.
-        </p>
-    </section>
+            <div class="nav-links" id="main-nav" data-nav-links>
+                <a class="nav-link active" aria-current="page"
+                   href="<%= request.getContextPath() %>/dashboard">Dashboard</a>
 
-    <section class="cards">
+                <a class="nav-link"
+                   href="<%= request.getContextPath() %>/productos">Productos</a>
 
-        <div class="card">
-            <h3>Gestión de inventario</h3>
-            <p>
-                Consulta, registra, actualiza y administra
-                los productos, precios y existencias
-                disponibles en el inventario.
-            </p>
+                <span class="nav-user" title="Sesión actual">
+                    <%= usuarioSeguro %>
+                    <span class="role-chip"><%= rolSeguro %></span>
+                </span>
 
-            <a class="module-button"
+                <form class="nav-logout"
+                      action="<%= request.getContextPath() %>/logout"
+                      method="POST">
+                    <button class="nav-logout-btn" type="submit">
+                        Cerrar sesión
+                    </button>
+                </form>
+            </div>
+        </nav>
+    </header>
+
+    <main class="page-container">
+        <div class="page-heading">
+            <div>
+                <p class="eyebrow">RESUMEN</p>
+                <h1>Dashboard</h1>
+                <p class="muted">
+                    Bienvenido, <strong><%= usuarioSeguro %></strong>.
+                    Gestiona tu inventario desde un solo lugar.
+                </p>
+            </div>
+
+            <a class="btn btn-primary"
                href="<%= request.getContextPath() %>/productos">
-                Administrar inventario
+                Ver productos <span aria-hidden="true">→</span>
             </a>
         </div>
 
-        <div class="card">
-            <h3>Mi sesión</h3>
-            <p>
-                Consulta tu usuario y el rol asignado
-                dentro del sistema.
-            </p>
+        <section class="stat-grid" aria-label="Accesos y resumen de sesión">
+            <article class="stat-card">
+                <div class="stat-icon" aria-hidden="true">▦</div>
+                <p class="stat-label">Inventario</p>
+                <h2 class="stat-value stat-value-text">Productos</h2>
+                <a class="stat-link"
+                   href="<%= request.getContextPath() %>/productos">
+                    Consultar inventario →
+                </a>
+            </article>
 
-            <span class="status">
-                Sesión iniciada
-            </span>
-        </div>
+            <article class="stat-card">
+                <div class="stat-icon" aria-hidden="true">＋</div>
+                <p class="stat-label">Registro</p>
+                <h2 class="stat-value stat-value-text">Nuevo producto</h2>
+                <a class="stat-link"
+                   href="<%= request.getContextPath() %>/productos/crear">
+                    Abrir formulario →
+                </a>
+            </article>
 
-    </section>
-</main>
+            <article class="stat-card">
+                <div class="stat-icon" aria-hidden="true">◉</div>
+                <p class="stat-label">Cuenta activa</p>
+                <h2 class="stat-value stat-value-text"><%= usuarioSeguro %></h2>
+                <span class="stat-note">Sesión iniciada correctamente</span>
+            </article>
 
+            <article class="stat-card">
+                <div class="stat-icon" aria-hidden="true">✓</div>
+                <p class="stat-label">Nivel de acceso</p>
+                <h2 class="stat-value stat-value-text"><%= rolSeguro %></h2>
+                <span class="stat-note">Permisos definidos por el servidor</span>
+            </article>
+        </section>
+
+        <section class="panel quick-panel">
+            <div>
+                <p class="eyebrow">ACCESOS RÁPIDOS</p>
+                <h2>Administración de inventario</h2>
+                <p class="muted">
+                    Consulta los productos registrados, revisa existencias
+                    y administra sus datos.
+                </p>
+            </div>
+
+            <a class="btn btn-primary"
+               href="<%= request.getContextPath() %>/productos">
+                Ir a productos
+            </a>
+        </section>
+
+        <p class="page-note">
+            Los indicadores numéricos de ventas y stock requieren consultas
+            adicionales del backend; esta vista no presenta cifras ficticias.
+        </p>
+    </main>
 </body>
 </html>
